@@ -5,9 +5,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.design.widget.BottomSheetBehavior;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
@@ -17,6 +21,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
+
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -26,10 +31,15 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
+import java.net.HttpURLConnection;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
@@ -45,15 +55,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     String activeStopID;
     String urlAddress = "https://still-reef-32346.herokuapp.com";
     Spinner spinnerStops;
-
+    JSONTask trainsTask;
+    int trainsPictureInt[] = {R.drawable.train1, R.drawable.train2, R.drawable.train3, R.drawable.train4, R.drawable.train6, R.drawable.train7, R.drawable.train9, R.drawable.train10, R.drawable.train11, R.drawable.train13, R.drawable.train14, R.drawable.train15, R.drawable.train17, R.drawable.train18, R.drawable.train20, R.drawable.train22, R.drawable.train23, R.drawable.train24, R.drawable.train25, R.drawable.train26, R.drawable.train27, R.drawable.train28, R.drawable.train31, R.drawable.train33, R.drawable.train35, R.drawable.train44};
+    Integer trainsNumber[] = {1, 2, 3, 4, 6, 7, 9, 10, 11, 13, 14, 15, 17, 18, 20, 22, 23, 24, 25, 26, 27, 28, 31, 33, 35, 44};
+    ArrayList<Marker> markerList = new ArrayList<Marker>();
+    Marker oldMarker = null;
+    int oldStopID = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        android.view.View bottomSheet = findViewById(R.id.bottom_sheet1);
+        View bottomSheet = findViewById(R.id.bottom_sheet1);
         mBottomSheetBehavior1 = BottomSheetBehavior.from(bottomSheet);
-        mBottomSheetBehavior1.setState(BottomSheetBehavior.STATE_HIDDEN);
+        mBottomSheetBehavior1.setPeekHeight(55);
+        mBottomSheetBehavior1.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
         SharedPreferences sharedPref = this.getSharedPreferences("userPref", Context.MODE_PRIVATE);
         if (!sharedPref.contains("userID")) {
@@ -91,6 +107,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     userLatitude = location.getLatitude();
                     userLongitude = location.getLongitude();
                     LatLng user = new LatLng(userLatitude, userLongitude);
+
                     userMarker.setPosition(user);
                     CameraUpdate update = CameraUpdateFactory.newLatLngZoom(user, 15);
                     mMap.animateCamera(update);
@@ -118,9 +135,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     userLatitude = location.getLatitude();
                     userLongitude = location.getLongitude();
                     LatLng user = new LatLng(userLatitude, userLongitude);
-                    userMarker.setPosition(user);
-                    CameraUpdate update = CameraUpdateFactory.newLatLngZoom(user, 15);
-                    mMap.animateCamera(update);
+                    try {
+                        userMarker.setPosition(user);
+                        CameraUpdate update = CameraUpdateFactory.newLatLngZoom(user, 15);
+                        mMap.animateCamera(update);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
 
                 @Override
@@ -143,18 +164,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         if (!sharedPref.contains("allTrams")) {
             //request do serwera po wszystkie przystanki
-           // int allStopsID;
+            // int allStopsID;
             // wpisz do tablicy
             // zapisz w pliku
+            JSONArray array = null;
             try {
-                JSONArray array = (JSONArray) new JSONParser().parse(getResources().getString(R.string.allStops));
-                for (int n = 0; n < array.size(); n++) {
-                    JSONObject object = (JSONObject) array.get(n);
-                    stops[n] = object;
-                }
-
+                array = (JSONArray) new JSONParser().parse(getResources().getString(R.string.allStops));
             } catch (ParseException e) {
                 e.printStackTrace();
+            }
+            for (int n = 0; n < array.size(); n++) {
+                JSONObject object = (JSONObject) array.get(n);
+                stops[n] = object;
             }
 
         } else {
@@ -164,15 +185,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             //jeśli nieaktualne, request do serwera po wszystkie przystanki itd.
         }
 
-
-
-
-
      /*   spinnerStops = (Spinner)findViewById(R.id.spinnerTranStop);
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.stops, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerStops.setAdapter(adapter);*/
-    }
+}
 
 
     /**
@@ -185,26 +202,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         LatLng user = new LatLng(userLatitude, userLongitude);
         userMarker = mMap.addMarker(new MarkerOptions().position(user).title(String.valueOf(userID))
-                .icon(BitmapDescriptorFactory.fromResource(R.drawable.user)));
+                .icon(BitmapDescriptorFactory.fromResource(R.drawable.user)).zIndex(userID));
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(user, 15));
 
         for (JSONObject stop : stops) {
-            try {
-                if (stop != null) {
-                    double latitude = Double.parseDouble((String) stop.get("lat"));
-                    double longitude = Double.parseDouble((String) stop.get("lon"));
-                    String name = (String) stop.get("name");
-                    String direction = (String) stop.get("direction");
-                    int StopID = Integer.parseInt((String) stop.get("stop_id"));
-                    mMap.addMarker(new MarkerOptions().position(new LatLng(latitude, longitude)).title(name)
-                            .icon(BitmapDescriptorFactory.fromResource(R.drawable.user)).zIndex(StopID).snippet(("(kierunek: " + direction + ")")));
+            if (stop != null) {
+                double latitude = Double.parseDouble((String) stop.get("lat"));
+                double longitude = Double.parseDouble((String) stop.get("lon"));
+                String name = (String) stop.get("name");
+                String direction = (String) stop.get("direction");
+                int StopID = Integer.parseInt((String) stop.get("stop_id"));
+                mMap.addMarker(new MarkerOptions().position(new LatLng(latitude, longitude)).title(name)
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.far_stop)).zIndex(StopID).snippet(("(kierunek: " + direction + ")")));
 
-                }
-            } catch (NumberFormatException e) {
-                e.printStackTrace();
             }
         }
         mMap.setOnMarkerClickListener(this);
+
     }
 
     /**
@@ -212,89 +226,156 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     @Override
     public boolean onMarkerClick(final Marker marker) {
-         marker.showInfoWindow();
+
+        if (!marker.equals(userMarker) && !markerList.contains(marker)) {
+            marker.showInfoWindow();
+
             mBottomSheetBehavior1.setState(BottomSheetBehavior.STATE_EXPANDED);
+            CameraUpdate update = CameraUpdateFactory.newLatLng(marker.getPosition());
+            mMap.animateCamera(update);
+            TextView TVname = (TextView) findViewById(R.id.stopName);
+            TVname.setText(marker.getTitle() + " ");
+            activeStopName = marker.getTitle();
+            TextView TVdirection = (TextView) findViewById(R.id.stopDirection);
+            TVdirection.setText(marker.getSnippet());
+            LinearLayout LU = (LinearLayout) findViewById(R.id.linear_up);
+            LU.removeAllViews();
+            LinearLayout LD = (LinearLayout) findViewById(R.id.linear_down);
+            LD.removeAllViews();
 
-        TextView TVname = (TextView) findViewById(R.id.stopName);
-        TVname.setText(marker.getTitle() + " ");
-        activeStopName = marker.getTitle();
-        TextView TVdirection = (TextView) findViewById(R.id.stopDirection);
-        TVdirection.setText(marker.getSnippet());
-        LinearLayout LU = (LinearLayout) findViewById(R.id.linear_up);
-        LU.removeAllViews();
-        LinearLayout LD = (LinearLayout) findViewById(R.id.linear_down);
-        LD.removeAllViews();
+            int stopIDint = (int) marker.getZIndex();
+            String stopID = String.valueOf(stopIDint);
+            if (stopIDint < 1000) {
+                stopID = "R-0" + stopID;
+            }
+            activeStopID = stopID;
 
+            marker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.active_stop));
+            marker.setZIndex(2000000000);
+            if (oldMarker!= null && oldStopID!=0)
+            {
+                oldMarker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.far_stop));
+                oldMarker.setZIndex(oldStopID);
+            }
+
+            oldMarker = marker;
+            oldStopID = Integer.parseInt(stopID);
+
+                    showTrains();
+            JSONTask task = new JSONTask(urlAddress + "/stop/" + stopID + "/lines");
+            task.execute();
+            String jsonString = task.jsonResult;
+            JSONTask task2 = new JSONTask(urlAddress + "/stop/" + stopID + "/lines/info");
+            task2.execute();
+            String jsonString2 = task2.jsonResult;
+
+            while (jsonString == null || jsonString2 == null) {
+                jsonString = task.jsonResult;
+                jsonString2 = task2.jsonResult;
+            }
+            task.cancel(false);
+            task2.cancel(false);
+            JSONArray array = null;
+            JSONArray array2 = null;
             try {
-                int stopIDint = (int)marker.getZIndex();
-                String stopID = String.valueOf(stopIDint);
-                if (stopIDint < 1000)
-                {
-                    stopID = "R-0" + stopID;
-                }
-                activeStopID = stopID;
-                JSONTask task = new JSONTask(urlAddress + "/stop/"+ stopID +"/lines");
-                task.execute();
-                String jsonString = task.jsonResult;
-                JSONTask task2 = new JSONTask(urlAddress + "/stop/"+ stopID +"/lines/info");
-                task2.execute();
-                String jsonString2 = task2.jsonResult;
-
-                while (jsonString == null || jsonString2 == null)
-                {
-                    jsonString = task.jsonResult;
-                    jsonString2 = task2.jsonResult;
-                }
-                task.cancel(true);
-                task2.cancel(true);
-                JSONArray array = (JSONArray) new JSONParser().parse(jsonString);
-                JSONArray array2 = (JSONArray) new JSONParser().parse(jsonString2);
-                for (int n = 0; n < array.size(); n++) {
-                    JSONObject object = (JSONObject) array.get(n);
-                    Button button = new Button(this);
-                    button.setText((String)object.get("lines"));
-                    button.setOnClickListener(new View.OnClickListener() {
-                        public void onClick(View view) {
-                            Button b = (Button)view;
-                            String buttonText = b.getText().toString();
-                            openTimetable(buttonText, activeStopID, activeStopName);
-                        }
-                    });
-                    LU.addView(button);
-
-                }
-                for (int n = 0; n < array2.size(); n++) {
-                    JSONObject object = (JSONObject) array2.get(n);
-                    TextView text = new TextView(this);
-                    if (object.get("time")!= null)
-                    {
-                        String textString = (String)object.get("time");
-                        String[] parts = textString.split(":");
-                        text.setText(parts[0]+ ":" + parts[1]);
-                        text.setPadding(50, 5, 30, 5);
-                    }
-                    else
-                    {
-                        text.setText("brak");
-                        text.setPadding(50, 5, 40, 5);
-                    }
-
-                    LD.addView(text);
-
-                }
+                array = (JSONArray) new JSONParser().parse(jsonString);
+                array2 = (JSONArray) new JSONParser().parse(jsonString2);
             } catch (ParseException e) {
                 e.printStackTrace();
             }
+            for (int n = 0; n < array.size(); n++) {
+                JSONObject object = (JSONObject) array.get(n);
+                Button button = new Button(this);
+                button.setText((String) object.get("lines"));
+                button.setOnClickListener(new View.OnClickListener() {
+                    public void onClick(View view) {
+                        Button b = (Button) view;
+                        String buttonText = b.getText().toString();
+                        openTimetable(buttonText, activeStopID, activeStopName);
+                    }
+                });
+                LU.addView(button);
+
+            }
+            for (int n = 0; n < array2.size(); n++) {
+                JSONObject object = (JSONObject) array2.get(n);
+                TextView text = new TextView(this);
+                if (object.get("time") != null) {
+                    String textString = (String) object.get("time");
+                    String[] parts = textString.split(":");
+                    text.setText(parts[0] + ":" + parts[1]);
+                    text.setPadding(50, 5, 30, 5);
+                } else {
+                    text.setText("brak");
+                    text.setPadding(50, 5, 40, 5);
+                }
+
+                LD.addView(text);
+
+            }
+        }
 
         return true;
     }
-    public void openTimetable(String line, String stopID, String stopName)
-    {
+
+    public void openTimetable(String line, String stopID, String stopName) {
         Intent myIntent = new Intent(this, TimetableActivity.class);
         myIntent.putExtra("line", line); //Optional parameters
         myIntent.putExtra("stopID", stopID); //Optional parameters
         myIntent.putExtra("stopName", stopName); //Optional parameters
         startActivity(myIntent);
+    }
+
+    public void showTrains() {
+        for (Marker marker : markerList) {
+            marker.remove();
+        }
+        markerList.clear();
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                trainsTask = new JSONTask(urlAddress + "/stop/" + activeStopID + "/lines/info/position");
+                trainsTask.execute();
+                String jsonString = trainsTask.jsonResult;
+                JSONArray bigArray = null;
+                JSONArray array = null;
+                while (jsonString == null) {
+                    jsonString = trainsTask.jsonResult;
+                }
+                trainsTask.cancel(false);
+                try {
+                    bigArray = (JSONArray) new JSONParser().parse(jsonString);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+                for (int m = 0; m < bigArray.size(); m++) {
+                    array = (JSONArray) bigArray.get(m);
+
+                    for (int n = 0; n < array.size(); n++) {
+                        JSONObject train = (JSONObject) array.get(n);
+
+                        double latitude = (double) train.get("lat");
+                        double longitude = (double) train.get("lon");
+                        int lineName = Integer.parseInt((String) train.get("lines"));
+                        int index = Arrays.asList(trainsNumber).indexOf(lineName);
+                        Bitmap bMap = BitmapFactory.decodeResource(getResources(), trainsPictureInt[index]);
+                        Bitmap bMapScaled = Bitmap.createScaledBitmap(bMap, 30, 30, true);
+                        markerList.add(mMap.addMarker(new MarkerOptions().position(new LatLng(latitude, longitude))
+                                .icon(BitmapDescriptorFactory.fromBitmap(bMapScaled)).zIndex(lineName + 1000000)));
+
+
+                    }
+                }
+            }
+        });
+
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (trainsTask != null)
+            trainsTask.cancel(false);
     }
 
 }

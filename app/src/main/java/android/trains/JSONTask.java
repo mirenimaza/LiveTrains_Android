@@ -1,6 +1,7 @@
 package android.trains;
 
 import android.os.AsyncTask;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -8,7 +9,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class JSONTask extends AsyncTask <String, String, String>{
+public class JSONTask extends AsyncTask<String, String, String> {
     HttpURLConnection urlConnection;
     String urlString;
     String jsonResult;
@@ -17,10 +18,12 @@ public class JSONTask extends AsyncTask <String, String, String>{
         super();
         urlString = url;
     }
+
     @Override
     protected String doInBackground(String... args) {
 
-        StringBuilder result = new StringBuilder();
+        StringBuilder result = null;
+        result = new StringBuilder();
 
         try {
             URL url = new URL(urlString);
@@ -34,13 +37,13 @@ public class JSONTask extends AsyncTask <String, String, String>{
                 result.append(line);
             }
 
-        }catch( Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             urlConnection.disconnect();
         }
         jsonResult = result.toString();
+
         return result.toString();
     }
 
