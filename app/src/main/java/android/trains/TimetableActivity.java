@@ -1,33 +1,28 @@
 package android.trains;
 
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.view.View;
-import android.widget.Button;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
-
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+/**
+ * The class that is used to display the timetable for a given stop and a given line
+ */
 public class TimetableActivity extends AppCompatActivity {
-
-    String line;
-    String stopID;
-    String stopName;
+    String line;                //name of given line
+    String stopID;              //ID of given stop
+    String stopName;            //name of given stop
     String urlAddress = "https://still-reef-32346.herokuapp.com";
-    int IDRowInt[] =  {R.id.row0, R.id.row1, R.id.row2, R.id.row3, R.id.row4, R.id.row5, R.id.row6, R.id.row7, R.id.row8, R.id.row9, R.id.row10, R.id.row11, R.id.row12, R.id.row13, R.id.row14, R.id.row15, R.id.row16, R.id.row17, R.id.row18, R.id.row19, R.id.row20, R.id.row21, R.id.row22, R.id.row23};
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -63,14 +58,14 @@ public class TimetableActivity extends AppCompatActivity {
             TableLayout table = (TableLayout) findViewById(R.id.table);
             try
             {
-                Date date = simpleDateFormat.parse(dateString);
+                Date date = simpleDateFormat.parse(dateString);             //date will be use for changing color of trains which already gone
                 for(int i = 0; i<24; i++)
                 {
                     TableRow TR=(TableRow) table.getChildAt(i);
                     if (Integer.parseInt(dateStringparts[0])==i)
                     {
                         TextView TV= new TextView(this);
-                        TV.setText(TV.getText() + "   " + dateStringparts[1]);
+                        TV.setText(TV.getText() + "   " + dateStringparts[1]);      //display only minutes because hour is display at the beginning of the row
                         TR.addView(TV);
                     }
                 }

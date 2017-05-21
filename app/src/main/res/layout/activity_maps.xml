@@ -1,7 +1,6 @@
-    <android.support.design.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/all"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -10,41 +9,36 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:focusable="true"
+        android:focusableInTouchMode="true">
         <!--android:paddingTop="24dp">-->
-        <TextView
-            android:id="@+id/latlongLocation"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:layout_alignParentLeft="true"
-            android:background="#ff058fff"
-            android:gravity="bottom"
-            android:paddingBottom="5dp"
-            android:paddingLeft="5dp"
-            android:paddingRight="5dp"
-            android:paddingTop="5dp"
-            android:textColor="#ffffffff" />
-        <EditText
-            android:id="@+id/searchView1"
-            android:layout_width="250dp"
-            android:layout_height="34dp"
-            android:layout_alignParentLeft="true"
-            android:layout_alignParentTop="true"
-            android:layout_marginLeft="18dp"
-            android:layout_marginTop="14dp"
-            android:hint="Search Location"
-            android:textColor="@android:color/black"
-            android:background="@android:color/white" >
-        </EditText>
-        <Button
-            android:id="@+id/button1"
-            android:layout_width="28dp"
-            android:layout_height="25dp"
-            android:layout_alignBaseline="@+id/searchView1"
-            android:layout_alignBottom="@+id/searchView1"
-            android:layout_alignRight="@+id/searchView1"
-            android:background="@drawable/user" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:orientation="horizontal">
+
+            <AutoCompleteTextView
+                android:id="@+id/etClinicName"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:hint="Search"
+                android:inputType="textPersonName"
+                android:paddingLeft="1dp"
+                android:paddingRight="15dp"
+                android:textSize="13sp" />
+            <Button
+                android:id="@+id/refreshButton"
+                android:background="@drawable/refresh"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_weight="5"
+                android:paddingLeft="5dp"/>
+        </LinearLayout>
+
 
         <fragment xmlns:android="http://schemas.android.com/apk/res/android"
             xmlns:map="http://schemas.android.com/apk/res-auto"
@@ -61,61 +55,61 @@
         android:id="@+id/bottom_sheet1"
         android:layout_width="match_parent"
         android:layout_height="130dp"
+        android:background="@android:color/white"
         android:clipToPadding="true"
         app:behavior_hideable="false"
-        android:background="@android:color/white"
         app:layout_behavior="android.support.design.widget.BottomSheetBehavior">
 
         <HorizontalScrollView
             android:id="@+id/scroll_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
+
             <LinearLayout
                 android:id="@+id/linear_scroll_view"
-                android:orientation="vertical"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
                 <LinearLayout
                     android:id="@+id/linear_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:paddingTop="5dp"
                     android:paddingBottom="5dp"
                     android:paddingLeft="5dp"
                     android:paddingRight="5dp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content">
+                    android:paddingTop="5dp">
+
                     <TextView
-                        android:layout_height="wrap_content"
-                        android:layout_width="wrap_content"
                         android:id="@+id/stopName"
-                        android:textStyle="bold"
-                        android:textColor="@color/black"
-                        android:textSize="20dp">
-                    </TextView>
-                    <TextView
-                        android:layout_height="wrap_content"
                         android:layout_width="wrap_content"
-                        android:id="@+id/stopDirection">
-                    </TextView>
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/black"
+                        android:textSize="20dp"
+                        android:textStyle="bold"></TextView>
+
+                    <TextView
+                        android:id="@+id/stopDirection"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"></TextView>
                 </LinearLayout>
+
                 <LinearLayout
                     android:id="@+id/linear_up"
-                    android:orientation="horizontal"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content">
-                </LinearLayout>
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"></LinearLayout>
+
                 <LinearLayout
                     android:id="@+id/linear_down"
-                    android:orientation="horizontal"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content">
-                </LinearLayout>
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"></LinearLayout>
 
             </LinearLayout>
 
         </HorizontalScrollView>
     </android.support.v4.widget.NestedScrollView>
-    </android.support.design.widget.CoordinatorLayout>
-<!--
+</android.support.design.widget.CoordinatorLayout><!--
         <?xml version="1.0" encoding="utf-8"?>-->

@@ -16,12 +16,15 @@ import android.support.design.widget.BottomSheetBehavior;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.Spinner;
 import android.widget.TextView;
-
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -31,13 +34,10 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-
-import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
@@ -50,26 +50,43 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     Marker userMarker;
     double userLatitude, userLongitude;
     int userID = 0;
-    JSONObject[] stops = new JSONObject[600];
     String activeStopName;
     String activeStopID;
     String urlAddress = "https://still-reef-32346.herokuapp.com";
-    Spinner spinnerStops;
     JSONTask trainsTask;
     int trainsPictureInt[] = {R.drawable.train1, R.drawable.train2, R.drawable.train3, R.drawable.train4, R.drawable.train6, R.drawable.train7, R.drawable.train9, R.drawable.train10, R.drawable.train11, R.drawable.train13, R.drawable.train14, R.drawable.train15, R.drawable.train17, R.drawable.train18, R.drawable.train20, R.drawable.train22, R.drawable.train23, R.drawable.train24, R.drawable.train25, R.drawable.train26, R.drawable.train27, R.drawable.train28, R.drawable.train31, R.drawable.train33, R.drawable.train35, R.drawable.train44};
     Integer trainsNumber[] = {1, 2, 3, 4, 6, 7, 9, 10, 11, 13, 14, 15, 17, 18, 20, 22, 23, 24, 25, 26, 27, 28, 31, 33, 35, 44};
-    ArrayList<Marker> markerList = new ArrayList<Marker>();
+    ArrayList<Marker> trainMarkers = new ArrayList<>();
+    ArrayList<Marker> stopMarkers = new ArrayList<>();
     Marker oldMarker = null;
     int oldStopID = 0;
+    ArrayAdapter<String> adapter;
+    private ArrayList<JSONObject> stopList;
+    private ArrayList<String> stopListString;
+    AutoCompleteTextView editText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+        stopList = new ArrayList<>();
+        stopListString = new ArrayList<>();
+        editText = (AutoCompleteTextView) findViewById(R.id.etClinicName);
+
         View bottomSheet = findViewById(R.id.bottom_sheet1);
         mBottomSheetBehavior1 = BottomSheetBehavior.from(bottomSheet);
         mBottomSheetBehavior1.setPeekHeight(55);
         mBottomSheetBehavior1.setState(BottomSheetBehavior.STATE_COLLAPSED);
+
+        Button bn = (Button) findViewById(R.id.refreshButton);
+        bn.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                refreshMap();
+            }
+        });
 
         SharedPreferences sharedPref = this.getSharedPreferences("userPref", Context.MODE_PRIVATE);
         if (!sharedPref.contains("userID")) {
@@ -96,8 +113,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // here to request the missing permissions, and then overriding
             //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
             //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
+            // to handle the case where the user grants the permission.
             return;
         }
         if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
@@ -106,11 +122,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 public void onLocationChanged(Location location) {
                     userLatitude = location.getLatitude();
                     userLongitude = location.getLongitude();
-                    LatLng user = new LatLng(userLatitude, userLongitude);
-
-                    userMarker.setPosition(user);
-                    CameraUpdate update = CameraUpdateFactory.newLatLngZoom(user, 15);
-                    mMap.animateCamera(update);
+                    if (activeStopID == null) {
+                        LatLng user = new LatLng(userLatitude, userLongitude);
+                        userMarker.setPosition(user);
+                        CameraUpdate update = CameraUpdateFactory.newLatLngZoom(user, 15);
+                        mMap.animateCamera(update);
+                    }
                 }
 
                 @Override
@@ -134,14 +151,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 public void onLocationChanged(Location location) {
                     userLatitude = location.getLatitude();
                     userLongitude = location.getLongitude();
-                    LatLng user = new LatLng(userLatitude, userLongitude);
-                    try {
+                    if (activeStopID == null) {
+                        LatLng user = new LatLng(userLatitude, userLongitude);
                         userMarker.setPosition(user);
                         CameraUpdate update = CameraUpdateFactory.newLatLngZoom(user, 15);
                         mMap.animateCamera(update);
-                    } catch (Exception e) {
-                        e.printStackTrace();
                     }
+
                 }
 
                 @Override
@@ -162,35 +178,43 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
 
-        if (!sharedPref.contains("allTrams")) {
-            //request do serwera po wszystkie przystanki
-            // int allStopsID;
-            // wpisz do tablicy
-            // zapisz w pliku
-            JSONArray array = null;
-            try {
-                array = (JSONArray) new JSONParser().parse(getResources().getString(R.string.allStops));
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-            for (int n = 0; n < array.size(); n++) {
-                JSONObject object = (JSONObject) array.get(n);
-                stops[n] = object;
-            }
-
-        } else {
-            //request do serwera czy aktualny allStopsID
-            //jeśli aktualne wczytaj z pliku do tablicy
-
-            //jeśli nieaktualne, request do serwera po wszystkie przystanki itd.
+        JSONArray array = null;
+        try {
+            array = (JSONArray) new JSONParser().parse(getResources().getString(R.string.allStops));
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        for (int n = 0; n < array.size(); n++) {
+            JSONObject object = (JSONObject) array.get(n);
+            stopList.add(object);
+            stopListString.add(object.get("name") + "\n(kierunek: " + object.get("direction") + ")");
         }
 
-     /*   spinnerStops = (Spinner)findViewById(R.id.spinnerTranStop);
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.stops, android.R.layout.simple_spinner_item);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerStops.setAdapter(adapter);*/
-}
+        adapter = new ArrayAdapter<>(this, R.layout.item_view, R.id.nameAndDirection, stopListString);
+        editText.setAdapter(adapter);
+        editText.addTextChangedListener(new TextWatcher() {
 
+            @Override
+            public void onTextChanged(CharSequence cs, int arg1, int arg2, int arg3) {
+                // When user changed the Text
+                MapsActivity.this.adapter.getFilter().filter(cs);
+            }
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count,
+                                          int after) {
+                // TODO Auto-generated method stub
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                // TODO Auto-generated method stub
+
+            }
+        });
+
+
+    }
 
     /**
      * This callback is triggered when the map is ready to be used.
@@ -205,15 +229,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .icon(BitmapDescriptorFactory.fromResource(R.drawable.user)).zIndex(userID));
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(user, 15));
 
-        for (JSONObject stop : stops) {
+        for (JSONObject stop : stopList) {
             if (stop != null) {
                 double latitude = Double.parseDouble((String) stop.get("lat"));
                 double longitude = Double.parseDouble((String) stop.get("lon"));
                 String name = (String) stop.get("name");
                 String direction = (String) stop.get("direction");
                 int StopID = Integer.parseInt((String) stop.get("stop_id"));
-                mMap.addMarker(new MarkerOptions().position(new LatLng(latitude, longitude)).title(name)
-                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.far_stop)).zIndex(StopID).snippet(("(kierunek: " + direction + ")")));
+                stopMarkers.add(mMap.addMarker(new MarkerOptions().position(new LatLng(latitude, longitude)).title(name)
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.far_stop)).zIndex(StopID).snippet(("(kierunek: " + direction + ")"))));
 
             }
         }
@@ -227,7 +251,43 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public boolean onMarkerClick(final Marker marker) {
 
-        if (!marker.equals(userMarker) && !markerList.contains(marker)) {
+        findStop(marker);
+        return true;
+    }
+
+    /**
+     * Called when the user writes stop's name. Program has to guest which marker corresponds to the query
+     */
+    public void findMarker(View v) {
+        Marker chosenMarker = null;
+        TextView tv = (TextView) v;
+        String nameAndDirection = tv.getText().toString();
+        String[] table = nameAndDirection.split("\n");
+        String name = table[0];
+        String direction = table[1];
+        for (Marker marker : stopMarkers) {
+            if (marker.getTitle().equals(name) && marker.getSnippet().equals(direction)) {
+                chosenMarker = marker;
+                break;
+            }
+        }
+
+        View view = this.getCurrentFocus();
+        if (view != null) {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
+        editText.getText().clear();
+        editText.clearFocus();
+        findStop(chosenMarker);
+    }
+
+    /**
+     * Locates train's stop, change this stop on red color
+     */
+    public void findStop(final Marker marker) {
+
+        if (stopMarkers.contains(marker)) {
             marker.showInfoWindow();
 
             mBottomSheetBehavior1.setState(BottomSheetBehavior.STATE_EXPANDED);
@@ -252,8 +312,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             marker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.active_stop));
             marker.setZIndex(2000000000);
-            if (oldMarker!= null && oldStopID!=0)
-            {
+            if (oldMarker != null && oldStopID != 0) {
                 oldMarker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.far_stop));
                 oldMarker.setZIndex(oldStopID);
             }
@@ -261,7 +320,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             oldMarker = marker;
             oldStopID = Integer.parseInt(stopID);
 
-                    showTrains();
+            showTrains();
             JSONTask task = new JSONTask(urlAddress + "/stop/" + stopID + "/lines");
             task.execute();
             String jsonString = task.jsonResult;
@@ -315,22 +374,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
 
-        return true;
     }
-
+    /**
+     * Called when the user click on line, changes activity
+     */
     public void openTimetable(String line, String stopID, String stopName) {
         Intent myIntent = new Intent(this, TimetableActivity.class);
-        myIntent.putExtra("line", line); //Optional parameters
-        myIntent.putExtra("stopID", stopID); //Optional parameters
-        myIntent.putExtra("stopName", stopName); //Optional parameters
+        myIntent.putExtra("line", line);
+        myIntent.putExtra("stopID", stopID);
+        myIntent.putExtra("stopName", stopName);
         startActivity(myIntent);
     }
 
+    /**
+     * Clean old trains and shows new trains
+     */
     public void showTrains() {
-        for (Marker marker : markerList) {
+        for (Marker marker : trainMarkers) {
             marker.remove();
         }
-        markerList.clear();
+        trainMarkers.clear();
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -360,7 +423,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         int index = Arrays.asList(trainsNumber).indexOf(lineName);
                         Bitmap bMap = BitmapFactory.decodeResource(getResources(), trainsPictureInt[index]);
                         Bitmap bMapScaled = Bitmap.createScaledBitmap(bMap, 30, 30, true);
-                        markerList.add(mMap.addMarker(new MarkerOptions().position(new LatLng(latitude, longitude))
+                        trainMarkers.add(mMap.addMarker(new MarkerOptions().position(new LatLng(latitude, longitude))
                                 .icon(BitmapDescriptorFactory.fromBitmap(bMapScaled)).zIndex(lineName + 1000000)));
 
 
@@ -371,11 +434,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+
     @Override
     public void onPause() {
         super.onPause();
         if (trainsTask != null)
             trainsTask.cancel(false);
+    }
+    /**
+     * Reshow user position and trains
+     */
+    public void refreshMap() {
+        LatLng user = new LatLng(userLatitude, userLongitude);
+        userMarker.setPosition(user);
+        if (activeStopID != null) {
+            showTrains();
+            CameraUpdate update = CameraUpdateFactory.newLatLng(oldMarker.getPosition());
+            mMap.animateCamera(update);
+        } else {
+            CameraUpdate update = CameraUpdateFactory.newLatLngZoom(user, 15);
+            mMap.animateCamera(update);
+        }
+
     }
 
 }

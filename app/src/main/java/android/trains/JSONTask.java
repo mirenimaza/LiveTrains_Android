@@ -1,7 +1,6 @@
 package android.trains;
 
 import android.os.AsyncTask;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -9,6 +8,9 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+/**
+ * The class that is used to retrieve data from website
+ */
 public class JSONTask extends AsyncTask<String, String, String> {
     HttpURLConnection urlConnection;
     String urlString;
