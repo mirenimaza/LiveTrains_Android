@@ -41,10 +41,14 @@ public class JSONTask extends AsyncTask<String, String, String> {
 
         } catch (Exception e) {
             e.printStackTrace();
+            jsonResult = "error";
         } finally {
             urlConnection.disconnect();
         }
-        jsonResult = result.toString();
+        if (result!=null)
+            jsonResult = result.toString();
+        else
+            jsonResult ="null";
 
         return result.toString();
     }

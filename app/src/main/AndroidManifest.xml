@@ -44,7 +44,7 @@
         <activity
             android:name=".TimetableActivity"
             android:label="@string/title_activity_timetable"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
+            android:theme="@style/AppTheme.NoActionBar" />
     </application>
 
 </manifest>

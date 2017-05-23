@@ -1,7 +1,9 @@
 package android.trains;
 
 import android.Manifest;
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -12,19 +14,29 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.IdRes;
 import android.support.design.widget.BottomSheetBehavior;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -48,7 +60,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private BottomSheetBehavior mBottomSheetBehavior1;
     LocationManager locationManager;
     Marker userMarker;
-    double userLatitude, userLongitude;
+    double userLatitude = 52.22986699;
+    double userLongitude = 21.01170835;
     int userID = 0;
     String activeStopName;
     String activeStopID;
@@ -64,6 +77,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ArrayList<JSONObject> stopList;
     private ArrayList<String> stopListString;
     AutoCompleteTextView editText;
+    RadioGroup radioGroup;
+    RadioButton rButton;
+    EditText mEdit;
+    int selectedSourceId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -245,6 +262,68 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+    public void showPopup(View v) {
+        PopupMenu popup = new PopupMenu(this, v);
+        MenuInflater inflater = popup.getMenuInflater();
+        inflater.inflate(R.menu.settings, popup.getMenu());
+        popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+            public boolean onMenuItemClick(MenuItem item) {
+                switch (item.getItemId()) {
+                    case R.id.source:
+                        openSourceDialog();
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+        });
+        // Handle dismissal with: popup.setOnDismissListener(...);
+        // Show the menu
+        popup.show();
+    }
+
+
+    public void openSourceDialog()
+    {
+        AlertDialog.Builder sourceDialog = new AlertDialog.Builder(this);
+        sourceDialog.setTitle("Choose source");
+        View view = this.getLayoutInflater().inflate(R.layout.dialog_layout, null);
+        sourceDialog.setView(view);
+        radioGroup = (RadioGroup) view.findViewById(R.id.radio_group);
+        radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, @IdRes int checkedId) {
+                selectedSourceId = radioGroup.getCheckedRadioButtonId();
+
+            }
+        });
+        mEdit = (EditText)view.findViewById(R.id.edit_source);
+
+
+        sourceDialog.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                View view = getLayoutInflater().inflate(R.layout.dialog_layout, null);
+                rButton = (RadioButton)view.findViewById(selectedSourceId);
+                if(rButton!=null)
+                {
+                    if (rButton.getText().toString().equals("Heroku")) {
+                        urlAddress = "https://still-reef-32346.herokuapp.com";
+                    }
+                    if (rButton.getText().toString().equals("Write url address")) {
+                        urlAddress = mEdit.getText().toString();
+                    }
+                }
+            }
+        });
+
+        sourceDialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+            }
+        });
+
+        sourceDialog.show();
+    }
+
     /**
      * Called when the user clicks a marker.
      */
@@ -334,44 +413,51 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
             task.cancel(false);
             task2.cancel(false);
-            JSONArray array = null;
-            JSONArray array2 = null;
-            try {
-                array = (JSONArray) new JSONParser().parse(jsonString);
-                array2 = (JSONArray) new JSONParser().parse(jsonString2);
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-            for (int n = 0; n < array.size(); n++) {
-                JSONObject object = (JSONObject) array.get(n);
-                Button button = new Button(this);
-                button.setText((String) object.get("lines"));
-                button.setOnClickListener(new View.OnClickListener() {
-                    public void onClick(View view) {
-                        Button b = (Button) view;
-                        String buttonText = b.getText().toString();
-                        openTimetable(buttonText, activeStopID, activeStopName);
-                    }
-                });
-                LU.addView(button);
-
-            }
-            for (int n = 0; n < array2.size(); n++) {
-                JSONObject object = (JSONObject) array2.get(n);
-                TextView text = new TextView(this);
-                if (object.get("time") != null) {
-                    String textString = (String) object.get("time");
-                    String[] parts = textString.split(":");
-                    text.setText(parts[0] + ":" + parts[1]);
-                    text.setPadding(50, 5, 30, 5);
-                } else {
-                    text.setText("brak");
-                    text.setPadding(50, 5, 40, 5);
+            if (jsonString != "error" && jsonString2 != "error") {
+                JSONArray array = null;
+                JSONArray array2 = null;
+                try {
+                    array = (JSONArray) new JSONParser().parse(jsonString);
+                    array2 = (JSONArray) new JSONParser().parse(jsonString2);
+                } catch (ParseException e) {
+                    e.printStackTrace();
                 }
+                for (int n = 0; n < array.size(); n++) {
+                    JSONObject object = (JSONObject) array.get(n);
+                    Button button = new Button(this);
+                    button.setText((String) object.get("lines"));
+                    button.setOnClickListener(new View.OnClickListener() {
+                        public void onClick(View view) {
+                            Button b = (Button) view;
+                            String buttonText = b.getText().toString();
+                            openTimetable(buttonText, activeStopID, activeStopName);
+                        }
+                    });
+                    LU.addView(button);
 
-                LD.addView(text);
+                }
+                for (int n = 0; n < array2.size(); n++) {
+                    JSONObject object = (JSONObject) array2.get(n);
+                    TextView text = new TextView(this);
+                    if (object.get("time") != null) {
+                        String textString = (String) object.get("time");
+                        String[] parts = textString.split(":");
+                        text.setText(parts[0] + ":" + parts[1]);
+                        text.setPadding(50, 5, 30, 5);
+                    } else {
+                        text.setText("    ");
+                        text.setPadding(50, 5, 40, 5);
+                    }
 
+                    LD.addView(text);
+
+                }
             }
+        }
+        else
+        {
+            Toast.makeText(this, "Wrong url address",
+                    Toast.LENGTH_LONG).show();
         }
 
     }
@@ -406,28 +492,35 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     jsonString = trainsTask.jsonResult;
                 }
                 trainsTask.cancel(false);
-                try {
-                    bigArray = (JSONArray) new JSONParser().parse(jsonString);
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }
-                for (int m = 0; m < bigArray.size(); m++) {
-                    array = (JSONArray) bigArray.get(m);
-
-                    for (int n = 0; n < array.size(); n++) {
-                        JSONObject train = (JSONObject) array.get(n);
-
-                        double latitude = (double) train.get("lat");
-                        double longitude = (double) train.get("lon");
-                        int lineName = Integer.parseInt((String) train.get("lines"));
-                        int index = Arrays.asList(trainsNumber).indexOf(lineName);
-                        Bitmap bMap = BitmapFactory.decodeResource(getResources(), trainsPictureInt[index]);
-                        Bitmap bMapScaled = Bitmap.createScaledBitmap(bMap, 30, 30, true);
-                        trainMarkers.add(mMap.addMarker(new MarkerOptions().position(new LatLng(latitude, longitude))
-                                .icon(BitmapDescriptorFactory.fromBitmap(bMapScaled)).zIndex(lineName + 1000000)));
-
-
+                if (jsonString!="error") {
+                    try {
+                        bigArray = (JSONArray) new JSONParser().parse(jsonString);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
                     }
+                    for (int m = 0; m < bigArray.size(); m++) {
+                        array = (JSONArray) bigArray.get(m);
+
+                        for (int n = 0; n < array.size(); n++) {
+                            JSONObject train = (JSONObject) array.get(n);
+
+                            double latitude = (double) train.get("lat");
+                            double longitude = (double) train.get("lon");
+                            int lineName = Integer.parseInt((String) train.get("lines"));
+                            int index = Arrays.asList(trainsNumber).indexOf(lineName);
+                            Bitmap bMap = BitmapFactory.decodeResource(getResources(), trainsPictureInt[index]);
+                            Bitmap bMapScaled = Bitmap.createScaledBitmap(bMap, 30, 30, true);
+                            trainMarkers.add(mMap.addMarker(new MarkerOptions().position(new LatLng(latitude, longitude))
+                                    .icon(BitmapDescriptorFactory.fromBitmap(bMapScaled)).zIndex(lineName + 1000000)));
+
+
+                        }
+                    }
+                }
+                else
+                {
+                    Toast.makeText(getApplicationContext(), "Wrong url address",
+                            Toast.LENGTH_LONG).show();
                 }
             }
         });

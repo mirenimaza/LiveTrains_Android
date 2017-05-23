@@ -52,7 +52,9 @@ public class TimetableActivity extends AppCompatActivity {
         }
         for (int n = 0; n < array.size(); n++) {
             JSONObject object = (JSONObject) array.get(n);
-            String dateString = (String)object.get("time");
+            String id = String.valueOf(object.get("id"));
+            String delay = delay(id);
+            String dateString = object.get("time").toString();
             String[] dateStringparts = dateString.split(":");
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm");
             TableLayout table = (TableLayout) findViewById(R.id.table);
@@ -65,7 +67,7 @@ public class TimetableActivity extends AppCompatActivity {
                     if (Integer.parseInt(dateStringparts[0])==i)
                     {
                         TextView TV= new TextView(this);
-                        TV.setText(TV.getText() + "   " + dateStringparts[1]);      //display only minutes because hour is display at the beginning of the row
+                        TV.setText(TV.getText() + "   " + dateStringparts[1] + "(+" + delay + ")");      //display only minutes because hour is display at the beginning of the row
                         TR.addView(TV);
                     }
                 }
@@ -75,6 +77,26 @@ public class TimetableActivity extends AppCompatActivity {
             }
 
         }
+    }
+    public String delay(String id_timetable) {
+        String delay = "0";
+        JSONTask task = new JSONTask(urlAddress + "/stop/delay/" + id_timetable);
+        task.execute();
+        String jsonString = task.jsonResult;
+        while (jsonString == null) {
+            jsonString = task.jsonResult;
+        }
+        task.cancel(true);
+        try {
+            if(jsonString!="null" && jsonString!="")
+            {
+                JSONObject object= (JSONObject) new JSONParser().parse(jsonString);
+                delay = (String) object.get("delay");
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return delay;
     }
 
 }
