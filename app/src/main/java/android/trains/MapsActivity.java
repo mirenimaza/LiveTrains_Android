@@ -445,8 +445,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         text.setText(parts[0] + ":" + parts[1]);
                         text.setPadding(50, 5, 30, 5);
                     } else {
-                        text.setText("    ");
-                        text.setPadding(50, 5, 40, 5);
+                        text.setText("      ");
+                        text.setPadding(50, 5, 45, 5);
                     }
 
                     LD.addView(text);
@@ -469,6 +469,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         myIntent.putExtra("line", line);
         myIntent.putExtra("stopID", stopID);
         myIntent.putExtra("stopName", stopName);
+        myIntent.putExtra("urlAddress", urlAddress);
         startActivity(myIntent);
     }
 

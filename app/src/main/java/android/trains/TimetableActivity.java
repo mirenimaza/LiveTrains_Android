@@ -21,7 +21,8 @@ public class TimetableActivity extends AppCompatActivity {
     String line;                //name of given line
     String stopID;              //ID of given stop
     String stopName;            //name of given stop
-    String urlAddress = "https://still-reef-32346.herokuapp.com";
+    String urlAddress;          //address url
+    String delays[];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,6 +35,7 @@ public class TimetableActivity extends AppCompatActivity {
         line = intent.getStringExtra("line");
         stopID = intent.getStringExtra("stopID");
         stopName = intent.getStringExtra("stopName");
+        urlAddress = intent.getStringExtra("urlAddress");
         setTitle(stopName + " (linia: " + line + ")");
 
         JSONTask task = new JSONTask(urlAddress + "/stop/"+ stopID +"/line/" + line + "/timetable");
@@ -50,10 +52,19 @@ public class TimetableActivity extends AppCompatActivity {
         } catch (ParseException e) {
             e.printStackTrace();
         }
+        delays = new String[array.size()];
+        String[] ids = new String[array.size()];
         for (int n = 0; n < array.size(); n++) {
             JSONObject object = (JSONObject) array.get(n);
-            String id = String.valueOf(object.get("id"));
-            String delay = delay(id);
+            ids[n] = String.valueOf(object.get("id"));
+        }
+        try {
+            delays = delay(ids, array.size());
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        for (int n = 0; n < array.size(); n++) {
+            JSONObject object = (JSONObject) array.get(n);
             String dateString = object.get("time").toString();
             String[] dateStringparts = dateString.split(":");
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm");
@@ -67,7 +78,7 @@ public class TimetableActivity extends AppCompatActivity {
                     if (Integer.parseInt(dateStringparts[0])==i)
                     {
                         TextView TV= new TextView(this);
-                        TV.setText(TV.getText() + "   " + dateStringparts[1] + "(+" + delay + ")");      //display only minutes because hour is display at the beginning of the row
+                        TV.setText(TV.getText() + "   " + dateStringparts[1] + "(+" + delays[n] + ")");      //display only minutes because hour is display at the beginning of the row
                         TR.addView(TV);
                     }
                 }
@@ -78,25 +89,49 @@ public class TimetableActivity extends AppCompatActivity {
 
         }
     }
-    public String delay(String id_timetable) {
-        String delay = "0";
-        JSONTask task = new JSONTask(urlAddress + "/stop/delay/" + id_timetable);
-        task.execute();
-        String jsonString = task.jsonResult;
-        while (jsonString == null) {
-            jsonString = task.jsonResult;
+    public String[] delay(String[] id_timetable, int arraySize) throws InterruptedException {
+        String delay = "00:00";
+        JSONTask[] tasks = new JSONTask[arraySize];
+        String[] jsonString = new String[arraySize];
+
+        for(int n = 0; n < arraySize; n++)
+        {
+            tasks[n] = new JSONTask(urlAddress + "/stop/delay/" + id_timetable);
+            tasks[n].execute();
         }
-        task.cancel(true);
+        
+        for(int n = 0; n < arraySize; n++)
+        {
+            jsonString[n] = tasks[n].jsonResult;
+            tasks[n].cancel(false);
+        }
         try {
-            if(jsonString!="null" && jsonString!="")
+            for(int n = 0; n < arraySize; n++)
             {
-                JSONObject object= (JSONObject) new JSONParser().parse(jsonString);
-                delay = (String) object.get("delay");
+                if(jsonString[n]!="null" && jsonString[n]!="")
+                {
+                    JSONObject object= (JSONObject) new JSONParser().parse(jsonString[n]);
+                    delays[n] = (String) object.get("delay");
+                    String[] delayTable = delay.split(":");
+                    if (delayTable[1].length()==1)
+                    {
+                        delayTable[1] = "0" + delayTable[1];
+                    }
+                    if (delayTable[2].length()==1)
+                    {
+                        delayTable[2] = "0" + delayTable[2];
+                    }
+                    delays[n] = delayTable[1] + ":" + delayTable[2];
+                }
+                else
+                    delays[n] = delay;
             }
+
+
         } catch (ParseException e) {
             e.printStackTrace();
         }
-        return delay;
+        return delays;
     }
 
 }
