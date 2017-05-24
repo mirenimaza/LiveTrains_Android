@@ -289,7 +289,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         sourceDialog.setTitle("Choose source");
         View view = this.getLayoutInflater().inflate(R.layout.dialog_layout, null);
         sourceDialog.setView(view);
+        mEdit = (EditText)view.findViewById(R.id.edit_source);
+        mEdit.clearFocus();
         radioGroup = (RadioGroup) view.findViewById(R.id.radio_group);
+        rButton = (RadioButton)view.findViewById(R.id.heroku_value);
+        selectedSourceId = R.id.heroku_value;
         radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, @IdRes int checkedId) {
@@ -297,7 +301,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             }
         });
-        mEdit = (EditText)view.findViewById(R.id.edit_source);
 
 
         sourceDialog.setPositiveButton("Ok", new DialogInterface.OnClickListener() {

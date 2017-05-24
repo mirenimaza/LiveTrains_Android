@@ -13,6 +13,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.ExecutionException;
 
 /**
  * The class that is used to display the timetable for a given stop and a given line
@@ -62,6 +63,8 @@ public class TimetableActivity extends AppCompatActivity {
             delays = delay(ids, array.size());
         } catch (InterruptedException e) {
             e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
         }
         for (int n = 0; n < array.size(); n++) {
             JSONObject object = (JSONObject) array.get(n);
@@ -89,22 +92,20 @@ public class TimetableActivity extends AppCompatActivity {
 
         }
     }
-    public String[] delay(String[] id_timetable, int arraySize) throws InterruptedException {
+    public String[] delay(String[] id_timetable, int arraySize) throws InterruptedException, ExecutionException {
         String delay = "00:00";
         JSONTask[] tasks = new JSONTask[arraySize];
         String[] jsonString = new String[arraySize];
 
         for(int n = 0; n < arraySize; n++)
         {
-            tasks[n] = new JSONTask(urlAddress + "/stop/delay/" + id_timetable);
-            tasks[n].execute();
-        }
-        
-        for(int n = 0; n < arraySize; n++)
-        {
+            tasks[n] = new JSONTask(urlAddress + "/stop/delay/" + id_timetable[n]);
+            tasks[n].execute().get();
             jsonString[n] = tasks[n].jsonResult;
             tasks[n].cancel(false);
+
         }
+
         try {
             for(int n = 0; n < arraySize; n++)
             {
@@ -112,7 +113,7 @@ public class TimetableActivity extends AppCompatActivity {
                 {
                     JSONObject object= (JSONObject) new JSONParser().parse(jsonString[n]);
                     delays[n] = (String) object.get("delay");
-                    String[] delayTable = delay.split(":");
+                    String[] delayTable = delays[n].split(":");
                     if (delayTable[1].length()==1)
                     {
                         delayTable[1] = "0" + delayTable[1];

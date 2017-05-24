@@ -39,7 +39,7 @@
                 android:paddingLeft="5dp"/>
             <Button
                 android:id="@+id/settingsButton"
-                android:background="@drawable/user"
+                android:background="@drawable/settings"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
                 android:layout_weight="5"
