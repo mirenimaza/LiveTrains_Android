@@ -53,6 +53,8 @@ import org.json.simple.parser.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
@@ -81,6 +83,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     RadioButton rButton;
     EditText mEdit;
     int selectedSourceId;
+    boolean flag = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,14 +99,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mBottomSheetBehavior1.setPeekHeight(55);
         mBottomSheetBehavior1.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
-        Button bn = (Button) findViewById(R.id.refreshButton);
-        bn.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                refreshMap();
-            }
-        });
 
         SharedPreferences sharedPref = this.getSharedPreferences("userPref", Context.MODE_PRIVATE);
         if (!sharedPref.contains("userID")) {
@@ -313,7 +308,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         urlAddress = "https://still-reef-32346.herokuapp.com";
                     }
                     if (rButton.getText().toString().equals("Write url address")) {
-                        urlAddress = mEdit.getText().toString();
+                        urlAddress = "http://" + mEdit.getText().toString();
                     }
                 }
             }
@@ -368,7 +363,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * Locates train's stop, change this stop on red color
      */
     public void findStop(final Marker marker) {
-
         if (stopMarkers.contains(marker)) {
             marker.showInfoWindow();
 
@@ -402,7 +396,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             oldMarker = marker;
             oldStopID = Integer.parseInt(stopID);
 
-            showTrains();
+            if (flag == false)
+            {
+                final Handler handler = new Handler();
+                        handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        refreshMap();
+                        handler.postDelayed(this, 10000);
+                    }
+                }, 10000);
+
+                flag = true;
+            }
+
+
+        //    showTrains();
             JSONTask task = new JSONTask(urlAddress + "/stop/" + stopID + "/lines");
             task.execute();
             String jsonString = task.jsonResult;
@@ -546,11 +555,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         userMarker.setPosition(user);
         if (activeStopID != null) {
             showTrains();
-            CameraUpdate update = CameraUpdateFactory.newLatLng(oldMarker.getPosition());
-            mMap.animateCamera(update);
-        } else {
-            CameraUpdate update = CameraUpdateFactory.newLatLngZoom(user, 15);
-            mMap.animateCamera(update);
         }
 
     }

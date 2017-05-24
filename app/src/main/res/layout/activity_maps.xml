@@ -21,7 +21,7 @@
 
             <AutoCompleteTextView
                 android:id="@+id/etClinicName"
-                android:layout_width="268dp"
+                android:layout_width="match_parent"
                 android:layout_height="50dp"
                 android:gravity="center_vertical"
                 android:hint="Search"
@@ -30,20 +30,14 @@
                 android:paddingRight="15dp"
                 android:layout_weight="1"
                 android:textSize="13sp" />
-            <Button
-                android:id="@+id/refreshButton"
-                android:background="@drawable/refresh"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_weight="5"
-                android:paddingLeft="5dp"/>
+
             <Button
                 android:id="@+id/settingsButton"
                 android:background="@drawable/settings"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
                 android:layout_weight="5"
-                android:paddingLeft="5dp"
+                android:paddingLeft="10dp"
                 android:onClick="showPopup"/>
         </LinearLayout>
 
